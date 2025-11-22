@@ -1,0 +1,42 @@
+# =============================================================================
+# PostgreSQL Docker Compose Configuration
+# =============================================================================
+# Standalone PostgreSQL container for Bionic-Agents development
+# 
+# Usage:
+#   docker compose -f docker-compose.postgres.yml up -d
+#   docker compose -f docker-compose.postgres.yml down
+#   docker compose -f docker-compose.postgres.yml logs -f postgres
+# =============================================================================
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: bionic-agents-postgres
+    restart: unless-stopped
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=liveagents
+      - POSTGRES_INITDB_ARGS=-E UTF8 --locale=C
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - bionic-agents-network
+
+volumes:
+  postgres-data:
+    driver: local
+
+networks:
+  bionic-agents-network:
+    driver: bridge
+
