@@ -1,0 +1,91 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: agent-runtime
+  namespace: livekit
+  labels:
+    app: agent-runtime
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: agent-runtime
+  template:
+    metadata:
+      labels:
+        app: agent-runtime
+    spec:
+      containers:
+      - name: runtime
+        image: registry.bionicaisolutions.com/livekit/agent-runtime:latest
+        ports:
+        - containerPort: 8080
+          name: http
+        env:
+        - name: DATABASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: shared-db-secret
+              key: url
+        - name: LIVEKIT_URL
+          valueFrom:
+            secretKeyRef:
+              name: livekit-secrets
+              key: url
+        - name: LIVEKIT_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: livekit-secrets
+              key: api-key
+        - name: LIVEKIT_API_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: livekit-secrets
+              key: api-secret
+        - name: LANGFUSE_ENABLED
+          valueFrom:
+            configMapKeyRef:
+              name: langfuse-config
+              key: enabled
+        - name: LANGFUSE_PUBLIC_KEY
+          valueFrom:
+            secretKeyRef:
+              name: langfuse-secrets
+              key: public-key
+        - name: LANGFUSE_SECRET_KEY
+          valueFrom:
+            secretKeyRef:
+              name: langfuse-secrets
+              key: secret-key
+        - name: LANGFUSE_BASE_URL
+          valueFrom:
+            configMapKeyRef:
+              name: langfuse-config
+              key: base-url
+        - name: AGENT_RUNTIME_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: agent-runtime-secrets
+              key: api-key
+        - name: PORT
+          value: "8080"
+        resources:
+          requests:
+            cpu: "2"
+            memory: "4Gi"
+          limits:
+            cpu: "8"
+            memory: "16Gi"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /ready
+            port: 8080
+          initialDelaySeconds: 10
+          periodSeconds: 5
+
