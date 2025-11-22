@@ -13,7 +13,10 @@ export const publicProcedure = t.procedure;
 const requireUser = t.middleware(async opts => {
   const { ctx, next } = opts;
 
-  if (!ctx.user) {
+  // Development mode: Allow bypass if BYPASS_AUTH is set
+  const bypassAuth = process.env.BYPASS_AUTH === "true" || process.env.NODE_ENV === "development";
+  
+  if (!ctx.user && !bypassAuth) {
     throw new TRPCError({ code: "UNAUTHORIZED", message: UNAUTHED_ERR_MSG });
   }
 

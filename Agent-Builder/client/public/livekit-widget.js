@@ -7,7 +7,9 @@
   'use strict';
 
   // Import LiveKit client SDK
-  const LIVEKIT_CDN = 'https://unpkg.com/livekit-client@2.16.0/dist/livekit-client.umd.min.js';
+  // Using jsdelivr as it's more reliable than unpkg
+  // Note: jsdelivr auto-minifies, so we use the .umd.js file
+  const LIVEKIT_CDN = 'https://cdn.jsdelivr.net/npm/livekit-client@2.16.0/dist/livekit-client.umd.js';
 
   class LiveKitAgentWidget {
     constructor(config) {
@@ -295,23 +297,27 @@
         this.updateStatus('Connecting to agent...', true);
 
         // Get LiveKit token from backend
+        // tRPC expects the input to be wrapped in a "json" property
         const response = await fetch(`${this.config.apiUrl}/api/trpc/livekit.getToken`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            agentId: this.config.agentId,
-            participantName: 'Guest',
+            json: {
+              agentId: this.config.agentId,
+              participantName: 'Guest',
+            },
           }),
         });
 
         const result = await response.json();
-        if (!result.result?.data) {
-          throw new Error('Failed to get connection token');
+        if (!result.result?.data?.json) {
+          const errorMsg = result.error?.json?.message || result.error?.message || 'Failed to get connection token';
+          throw new Error(errorMsg);
         }
 
-        const { token, url, roomName } = result.result.data;
+        const { token, url, roomName } = result.result.data.json;
 
         // Connect to LiveKit room
         this.room = new window.LivekitClient.Room({
@@ -412,10 +418,13 @@
         btn.classList.add('active');
         this.localVideo.style.display = 'block';
         
-        // Attach local video track
-        const tracks = Array.from(this.room.localParticipant.videoTracks.values());
-        if (tracks.length > 0) {
-          tracks[0].videoTrack?.attach(this.localVideo);
+        // Attach local video track - use videoTrackPublications which is a Map
+        const videoTrackPublications = this.room.localParticipant.videoTrackPublications;
+        if (videoTrackPublications && videoTrackPublications.size > 0) {
+          const firstTrack = Array.from(videoTrackPublications.values())[0];
+          if (firstTrack && firstTrack.track) {
+            firstTrack.track.attach(this.localVideo);
+          }
         }
       } else {
         btn.classList.remove('active');

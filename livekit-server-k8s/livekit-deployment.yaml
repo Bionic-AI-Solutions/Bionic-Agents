@@ -1,0 +1,56 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: livekit-server
+  namespace: livekit
+  labels:
+    app: livekit-server
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: livekit-server
+  template:
+    metadata:
+      labels:
+        app: livekit-server
+    spec:
+      containers:
+      - name: livekit-server
+        image: livekit/livekit-server:latest
+        ports:
+        - containerPort: 7880
+          name: http
+        - containerPort: 7881
+          name: tcp
+        - containerPort: 50000
+          name: rtc-start
+        - containerPort: 60000
+          name: rtc-end
+        env:
+        - name: LIVEKIT_KEYS
+          value: "devkey-livekit-api-key-2024: devkey-livekit-api-secret-2024-min-32-chars"
+        - name: LIVEKIT_PORT
+          value: "7880"
+        - name: LIVEKIT_RTC_TCP_PORT
+          value: "7881"
+        - name: LIVEKIT_RTC_PORT_RANGE_START
+          value: "50000"
+        - name: LIVEKIT_RTC_PORT_RANGE_END
+          value: "60000"
+        volumeMounts:
+        - name: config
+          mountPath: /etc/livekit
+          readOnly: true
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "500m"
+          limits:
+            memory: "2Gi"
+            cpu: "2000m"
+      volumes:
+      - name: config
+        configMap:
+          name: livekit-config
+

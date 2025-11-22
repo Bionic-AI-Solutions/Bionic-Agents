@@ -1,0 +1,195 @@
+# =============================================================================
+# Development Docker Compose Configuration
+# =============================================================================
+# This file runs all 3 apps in development mode with code mounted from host.
+# Dependencies are installed in containers, but code changes are immediately
+# reflected without rebuilding images.
+#
+# IMPORTANT: For sign-in to work, you need to set OAuth environment variables.
+# Create a .env file in the project root with:
+#   VITE_APP_ID=your-oauth-app-id
+#   OAUTH_SERVER_URL=https://your-oauth-server-url.com
+#   VITE_OAUTH_PORTAL_URL=https://your-oauth-portal-url.com
+#
+# Usage:
+#   docker compose -f docker-compose.dev.yml --env-file .env up -d
+#   docker compose -f docker-compose.dev.yml logs -f
+#   docker compose -f docker-compose.dev.yml down
+# =============================================================================
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:16-alpine
+    container_name: bionic-agents-postgres-dev
+    restart: unless-stopped
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=liveagents
+      - POSTGRES_INITDB_ARGS=-E UTF8 --locale=C
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data-dev:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - bionic-agents-dev
+
+  # Agent-Builder Service
+  agent-builder:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    container_name: bionic-agents-builder-dev
+    restart: unless-stopped
+    working_dir: /app/Agent-Builder
+    command: >
+      sh -c "
+        cd /app/Agent-Builder &&
+        echo '📦 Installing dependencies for Agent-Builder...' &&
+        pnpm install &&
+        echo '🚀 Starting Agent-Builder in development mode...' &&
+        pnpm dev
+      "
+    volumes:
+      # Mount source code from host (excludes node_modules, dist)
+      - ./Agent-Builder:/app/Agent-Builder:cached
+      # Use anonymous volumes for node_modules to keep them in container
+      - /app/Agent-Builder/node_modules
+      - /app/Agent-Builder/dist
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=development
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/liveagents
+      - PORT=3000
+      # Add other env vars from .env.example as needed
+      - JWT_SECRET=${JWT_SECRET:-dev-secret-key-min-32-chars-for-local-development}
+      - VITE_APP_ID=${VITE_APP_ID:-}
+      - OAUTH_SERVER_URL=${OAUTH_SERVER_URL:-}
+      - VITE_OAUTH_PORTAL_URL=${VITE_OAUTH_PORTAL_URL:-}
+      # Development: Bypass authentication for testing
+      - BYPASS_AUTH=${BYPASS_AUTH:-true}
+      # LiveKit config - these are defaults, but Agent-Builder reads from database settings
+      - LIVEKIT_URL=${LIVEKIT_URL:-ws://localhost:7880}
+      - LIVEKIT_API_KEY=${LIVEKIT_API_KEY:-devkey-livekit-api-key-2024}
+      - LIVEKIT_API_SECRET=${LIVEKIT_API_SECRET:-devkey-livekit-api-secret-2024-min-32-chars}
+      - LANGFUSE_ENABLED=${LANGFUSE_ENABLED:-false}
+      - LANGFUSE_PUBLIC_KEY=${LANGFUSE_PUBLIC_KEY:-}
+      - LANGFUSE_SECRET_KEY=${LANGFUSE_SECRET_KEY:-}
+      - LANGFUSE_BASE_URL=${LANGFUSE_BASE_URL:-https://cloud.langfuse.com}
+      # Agent Runtime API (for local Docker development)
+      - AGENT_RUNTIME_API_URL=http://agent-runtime:8080
+      - AGENT_RUNTIME_API_KEY=${AGENT_RUNTIME_API_KEY:-}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      agent-runtime:
+        condition: service_started
+    networks:
+      - bionic-agents-dev
+
+  # Agent-Dashboard Service
+  agent-dashboard:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    container_name: bionic-agents-dashboard-dev
+    restart: unless-stopped
+    working_dir: /app/Agent-Dashboard
+    command: >
+      sh -c "
+        cd /app/Agent-Dashboard &&
+        echo '📦 Installing dependencies for Agent-Dashboard...' &&
+        pnpm install &&
+        echo '🚀 Starting Agent-Dashboard in development mode...' &&
+        pnpm dev
+      "
+    volumes:
+      # Mount source code from host (excludes node_modules, dist)
+      - ./Agent-Dashboard:/app/Agent-Dashboard:cached
+      # Use anonymous volumes for node_modules to keep them in container
+      - /app/Agent-Dashboard/node_modules
+      - /app/Agent-Dashboard/dist
+    ports:
+      - "3001:3000"
+    environment:
+      - NODE_ENV=development
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/liveagents
+      - PORT=3000
+      # Add other env vars from .env.example as needed
+      - JWT_SECRET=${JWT_SECRET:-dev-secret-key-min-32-chars-for-local-development}
+      - VITE_APP_ID=${VITE_APP_ID:-}
+      - OAUTH_SERVER_URL=${OAUTH_SERVER_URL:-}
+      - VITE_OAUTH_PORTAL_URL=${VITE_OAUTH_PORTAL_URL:-}
+      # Development: Bypass authentication for testing
+      - BYPASS_AUTH=${BYPASS_AUTH:-true}
+      # LiveKit config - these are defaults, but Agent-Builder reads from database settings
+      - LIVEKIT_URL=${LIVEKIT_URL:-ws://localhost:7880}
+      - LIVEKIT_API_KEY=${LIVEKIT_API_KEY:-devkey-livekit-api-key-2024}
+      - LIVEKIT_API_SECRET=${LIVEKIT_API_SECRET:-devkey-livekit-api-secret-2024-min-32-chars}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - bionic-agents-dev
+
+  # Agent-Runtime Service
+  agent-runtime:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    container_name: bionic-agents-runtime-dev
+    restart: unless-stopped
+    working_dir: /app/Agent-Runtime
+    command: >
+      sh -c "
+        cd /app/Agent-Runtime &&
+        echo '📦 Installing dependencies for Agent-Runtime...' &&
+        pnpm install &&
+        echo '🚀 Starting Agent-Runtime in development mode...' &&
+        pnpm dev
+      "
+    volumes:
+      # Mount source code from host (excludes node_modules, dist)
+      - ./Agent-Runtime:/app/Agent-Runtime:cached
+      # Use anonymous volumes for node_modules to keep them in container
+      - /app/Agent-Runtime/node_modules
+      - /app/Agent-Runtime/dist
+    ports:
+      - "8080:8080"
+    environment:
+      - NODE_ENV=development
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/liveagents
+      - PORT=8080
+      # Add other env vars from .env.example as needed
+      # LiveKit config - these are defaults, but Agent-Builder reads from database settings
+      - LIVEKIT_URL=${LIVEKIT_URL:-ws://localhost:7880}
+      - LIVEKIT_API_KEY=${LIVEKIT_API_KEY:-devkey-livekit-api-key-2024}
+      - LIVEKIT_API_SECRET=${LIVEKIT_API_SECRET:-devkey-livekit-api-secret-2024-min-32-chars}
+      - LANGFUSE_ENABLED=${LANGFUSE_ENABLED:-false}
+      - LANGFUSE_PUBLIC_KEY=${LANGFUSE_PUBLIC_KEY:-}
+      - LANGFUSE_SECRET_KEY=${LANGFUSE_SECRET_KEY:-}
+      - LANGFUSE_BASE_URL=${LANGFUSE_BASE_URL:-https://cloud.langfuse.com}
+      - MAX_AGENTS_PER_INSTANCE=${MAX_AGENTS_PER_INSTANCE:-50}
+      - MAX_SESSIONS_PER_AGENT=${MAX_SESSIONS_PER_AGENT:-100}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - bionic-agents-dev
+
+volumes:
+  postgres-data-dev:
+    driver: local
+
+networks:
+  bionic-agents-dev:
+    driver: bridge
+
