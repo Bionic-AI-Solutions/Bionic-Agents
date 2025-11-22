@@ -1,0 +1,36 @@
+# Ignore node_modules - they should be in container, not from host
+**/node_modules
+**/dist
+**/.next
+**/.cache
+**/.turbo
+**/.vite
+
+# Ignore build outputs
+**/build
+**/out
+
+# Ignore lock files (we'll use container's pnpm)
+# Actually, keep them so pnpm can use them
+# pnpm-lock.yaml
+
+# Ignore OS files
+.DS_Store
+Thumbs.db
+
+# Ignore IDE files
+.vscode
+.idea
+*.swp
+*.swo
+
+# Ignore logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# Ignore environment files (use container env vars)
+.env
+.env.local
+.env.*.local
+

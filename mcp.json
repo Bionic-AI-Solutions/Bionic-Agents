@@ -1,0 +1,54 @@
+{
+  "mcpServers": {
+    "kubernetes": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-kubernetes"
+      ]
+    },
+    "context7": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@context7/mcp-server"
+      ]
+    },
+    "hf-mcp-server": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@huggingface/mcp-server"
+      ]
+    },
+    "duck-duck-go": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-duckduckgo"
+      ]
+    },
+    "github": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-github"
+      ],
+      "env": {
+        "GITHUB_PERSONAL_ACCESS_TOKEN": ""
+      }
+    },
+    "dockerhub": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-dockerhub"
+      ],
+      "env": {
+        "DOCKERHUB_USERNAME": "",
+        "DOCKERHUB_PASSWORD": ""
+      }
+    }
+  }
+}
+

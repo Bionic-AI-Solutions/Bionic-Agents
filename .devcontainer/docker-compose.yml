@@ -1,0 +1,51 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: .devcontainer/Dockerfile
+    volumes:
+      # Mount source code from host (excludes node_modules, dist, etc.)
+      - ..:/workspace:cached
+      # Use anonymous volumes for node_modules to keep them in container
+      # This prevents host node_modules from interfering
+      - /workspace/Agent-Builder/node_modules
+      - /workspace/Agent-Dashboard/node_modules
+      - /workspace/Agent-Runtime/node_modules
+      # Also exclude build outputs
+      - /workspace/Agent-Builder/dist
+      - /workspace/Agent-Dashboard/dist
+      - /workspace/Agent-Runtime/dist
+    command: sleep infinity
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/liveagents
+      - NODE_ENV=development
+      - POSTGRES_HOST=postgres
+      - POSTGRES_PORT=5432
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=liveagents
+
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=liveagents
+      - POSTGRES_INITDB_ARGS=-E UTF8 --locale=C
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres-data:
+
