@@ -42,40 +42,26 @@ export class LangFuseClient {
     return trace.traceId || `trace-${Date.now()}`;
   }
 
-  async getTraceMetrics(traceId: string): Promise<LangFuseMetrics | null> {
-    if (!this.isEnabled()) {
-      return null;
-    }
-
-    // Query LangFuse API for trace metrics
-    // TODO: Implement LangFuse API integration
-    try {
-      const response = await fetch(`${this.config!.baseUrl}/api/public/traces/${traceId}`, {
-        headers: {
-          "Authorization": `Bearer ${this.config!.publicKey}`,
-        },
-      });
-
-      if (!response.ok) {
-        return null;
-      }
-
-      const data = await response.json();
-      
-      // Extract metrics from LangFuse response
-      // This is a placeholder - actual implementation depends on LangFuse API structure
-      return {
-        totalTokens: data.totalTokens || 0,
-        inputTokens: data.inputTokens || 0,
-        outputTokens: data.outputTokens || 0,
-        totalCost: data.totalCost || 0,
-        avgLatency: data.avgLatency || 0,
-        modelName: data.modelName,
-      };
-    } catch (error) {
-      console.error("Failed to get LangFuse trace metrics:", error);
-      return null;
-    }
+  /**
+   * Not implemented — deliberately does no I/O.
+   *
+   * This previously issued `GET /api/public/traces/{id}`. That route is REMOVED
+   * in Langfuse v4 (it returns 404 once the server runs the default
+   * `events_only` write mode), and the request was already failing before the
+   * upgrade: it sent `Authorization: Bearer <publicKey>`, while Langfuse's
+   * public API expects HTTP Basic with publicKey as the user and secretKey as
+   * the password. Every call therefore fell through to `return null`.
+   *
+   * Keeping a live call to a removed endpoint would mean one network round-trip
+   * per invocation to produce the null this returns anyway, so the call is gone
+   * rather than repointed. The behaviour is unchanged.
+   *
+   * To implement for real, use the v4 replacements — Observations v2 for
+   * per-observation usage and Metrics v2 for aggregates — with Basic auth.
+   * See ../../../k8s-infrastructure/.../langfuse/harness/APP-MIGRATION.md.
+   */
+  async getTraceMetrics(_traceId: string): Promise<LangFuseMetrics | null> {
+    return null;
   }
 
   async queryTraces(params: {

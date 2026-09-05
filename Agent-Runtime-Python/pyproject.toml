@@ -16,7 +16,11 @@ asyncpg = "^0.30.0"
 pydantic = "^2.9.0"
 pydantic-settings = "^2.5.0"
 livekit-agents = {extras = ["bithuman"], version = "^1.2.0"}
-langfuse = "^2.0.0"
+# Langfuse v4 SERVER rejects any Python SDK below 4.7.0 (JS below 5.4.0).
+# ^2.0.0 could never satisfy that floor. Pinned exactly to 4.15.1 to match
+# vc-agentchat and Voice-Studio, so one known-good SDK version runs fleet-wide.
+# NOTE: nothing here imports the SDK yet — see src/langfuse/langfuse_client.py.
+langfuse = "4.15.1"
 python-dotenv = "^1.0.0"
 httpx = "^0.27.0"
 nanoid = "^2.0.0"

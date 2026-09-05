@@ -13,13 +13,13 @@ class LangFuseClient:
         self.secret_key = self.config.get("secretKey")
         self.base_url = self.config.get("baseUrl", "https://cloud.langfuse.com")
         
-        # TODO: Initialize LangFuse SDK
+        # TODO: Initialize LangFuse SDK (pinned to langfuse 4.15.1 in pyproject.toml)
         # if self.enabled:
         #     from langfuse import Langfuse
         #     self.client = Langfuse(
         #         public_key=self.public_key,
         #         secret_key=self.secret_key,
-        #         host=self.base_url,
+        #         base_url=self.base_url,   # `host=` still works in 4.x but is deprecated
         #     )
         # else:
         #     self.client = None
@@ -39,11 +39,20 @@ class LangFuseClient:
         if not self.enabled:
             return None
         
-        # TODO: Implement LangFuse trace creation
+        # TODO: Implement LangFuse trace creation.
+        #
+        # The v4 SDK has no `client.trace()` / `trace.generation()` — those were
+        # removed after v2. Note also that `start_span` / `start_as_current_span`
+        # do NOT exist despite appearing in the published docs; the real package
+        # exposes only start_observation / start_as_current_observation with an
+        # `as_type` discriminator ("span", "generation", "agent", "tool").
+        #
         # if self.client:
-        #     trace = self.client.trace(name=name, metadata=metadata)
-        #     trace.generation(input=input_data, output=output_data)
-        #     return trace.id
+        #     with self.client.start_as_current_observation(
+        #         name=name, as_type="generation", metadata=metadata
+        #     ) as gen:
+        #         gen.update(input=input_data, output=output_data)
+        #         return gen.trace_id
         
         return None
     
